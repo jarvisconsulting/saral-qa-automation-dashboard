@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saral-qa-dashboard
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:password@postgres:5432/saral_qa?schema=public}
+      - JWT_SECRET=${JWT_SECRET:-saral_dashboard_jwt_secret_change_in_production}
+      - CORS_ORIGIN=*
+      - JENKINS_URL=${JENKINS_URL:-http://34.131.246.72:8080}
+      - JENKINS_USER=${JENKINS_USER:-}
+      - JENKINS_TOKEN=${JENKINS_TOKEN:-}
+      - JENKINS_JOB_NAME=${JENKINS_JOB_NAME:-event-module-automation}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_REPO_OWNER=${GITHUB_REPO_OWNER:-}
+      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-saral-automation}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: saral-qa-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: saral_qa
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saral_qa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
